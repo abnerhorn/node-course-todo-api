@@ -4,9 +4,16 @@ const request = require('supertest');
 const {app} = require('./../server');
 const {Todo} = require('./../models/Todo');
 
+const todos = [{
+  text: "Test todo1"
+},{
+  text : "Test todo2"
+}]
 
 beforeEach((done) => {
-  Todo.remove({}).then(()=>done());
+  Todo.remove({}).then(()=>{
+    return Todo.insertMany(todos);
+  }).then(() => done());
 });
 
 describe('POST /todos', (() => {
@@ -22,12 +29,12 @@ describe('POST /todos', (() => {
       .expect((res)=>{
         expect(res.body.text).toBe(text);
       })
-      .end((err,res) => {
+      .end((err,res) => { //The end gets a function because it's async
         if (err) {
           return done(err);
         }
 
-        Todo.find().then((todos)=>{
+        Todo.find({text}).then((todos)=>{
           expect(todos.length).toBe(1);
           expect(todos[0].text).toBe(text);
           done();
@@ -44,10 +51,22 @@ describe('POST /todos', (() => {
           if(err){return done(err)}
 
           Todo.find().then((res)=>{
-            expect(res.length).toBe(0);
+            expect(res.length).toBe(2);
             done();
           }).catch((e)=>done(e));
         })
     })
 
 }))
+
+describe("GET /todos",()=>{
+  it("should get 2 todos",(done)=>{
+    request(app)
+      .get('/todos')
+      .expect(200)
+      .expect((res)=>{
+        expect(res.body.todos.lenght).toBe(2);
+      })
+      .end(done())
+  })
+})
